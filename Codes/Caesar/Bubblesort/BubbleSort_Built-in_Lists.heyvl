@@ -1,0 +1,148 @@
+// RUN: @caesar @file
+/**
+  *   Using the built-in List to try verifying bubble sort
+  **/
+
+domain Mul {
+/**
+  *   Function of multiplicity 
+  *   Failed to implement
+  *
+  *   @param  n:      Index of n
+  *   @param  arr:    The input list
+  *   @param  el:     The element of multiplicity
+  *   @returns        The number of times that the element appears
+  *   
+  *   note:   Caesar cannot find for all examples, as Caesar cannot choose the quantified instance
+  **/
+  func multiplicity(n: UInt, arr: []Int, el: Int) : UInt
+  axiom m_n forall n: UInt, arr: []Int, el: Int. (0 == n) ==> (multiplicity(n, arr, el) == 0)
+  axiom m_l forall n: UInt, arr: []Int, el: Int. ((0 < n) && (n <= len(arr)) && (select(arr, n-1) == el)) ==> (multiplicity(n, arr, el) == 1 + multiplicity(n-1, arr, el))
+  axiom m_l_n forall n: UInt, arr: []Int, el: Int. ((0 < n) && (n <= len(arr)) && (select(arr, n-1) != el)) ==> (multiplicity(n, arr, el) == multiplicity(n-1, arr, el))
+}
+
+/**
+  *   The proc to ensure bubble sort
+  *
+  *   @param  arr:    A built-in Lists
+  *   @returns  res:  The return Lists that is sorted
+  *   
+  *   note:   Instead using predicates as in Dafny, annotate the quantifiers directly in the pre- and postconditions
+  *           The annotations are analogous as the those used in Dafny
+  **/
+
+proc BubbleSort(arr: []Int) -> (res: []Int)
+  pre ? (0 <= len(arr))
+  post ? (0 <= len(res)
+  && (len(arr) == len(res)) 
+  && (forall p: UInt, q: UInt. ((0 <= p) && (p < q) && (q < len(res))) ==> (select(res, p) <= select(res, q)))
+  //&& (forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+  )
+{
+  res = arr;
+  var i: UInt = 0;
+  var n: UInt = (len(res) - 1);
+  assert ? (
+    ((0 <= i) && (i <= n)) && 
+    (len(arr) == len(res)) &&
+    (forall p: UInt, q: UInt. ((n-i <= p) && (p < q) && (q <= n) && (n < len(res))) ==>
+    (select(res, p) <= select(res, q))) &&
+    (forall p: UInt, q: UInt. ((0 <= p) && (p < n-i) && (n-i < q) && (q < len(res))) ==> 
+    (select(res, p) <= select(res, q))) 
+    //&&(forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+  )
+  havoc res, i
+  assume ? (
+    ((0 <= i) && (i <= n)) &&
+    (len(arr) == len(res)) &&
+    (forall p: UInt, q: UInt. ((n-i <= p) && (p < q) && (q <= n) && (n < len(res))) ==>
+    (select(res, p) <= select(res, q))) &&
+    (forall p: UInt, q: UInt. ((0 <= p) && (p < n-i) && (n-i < q) && (q < len(res))) ==> 
+    (select(res, p) <= select(res, q))) 
+    //&& (forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+  )
+  if (0 < n-i) {
+    var j: UInt = 0
+
+    assert ? (
+      ((0 <= j) && (j <= n-i)) &&
+      (len(arr) == len(res)) &&
+      (forall p: UInt, q: UInt. ((n-i <= p) && (p < q) && (q <= n) && (n < len(res))) ==>
+      (select(res, p) <= select(res, q))) &&
+      (forall p: UInt, q: UInt. ((0 <= p) && (p < n-i) && (n-i < q) && (q < len(res))) ==> 
+      (select(res, p) <= select(res, q))) && 
+      (forall k: UInt. ((0 <= k) && (k <= j)) ==> (select(res, k) <= select(res, j)))
+      //&& (forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+    )
+    havoc res, j
+    assume ? (
+      ((0 <= j) && (j <= n-i)) &&
+      (len(arr) == len(res)) &&
+      (forall p: UInt, q: UInt. ((n-i <= p) && (p < q) && (q <= n) && (n < len(res))) ==>
+      (select(res, p) <= select(res, q))) &&
+      (forall p: UInt, q: UInt. ((0 <= p) && (p < n-i) && (n-i < q) && (q < len(res))) ==> 
+      (select(res, p) <= select(res, q))) && 
+      (forall k: UInt. ((0 <= k) && (k <= j)) ==> (select(res, k) <= select(res, j)))
+      //&& (forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+    )
+    if (j < n-i) {
+      if((select(res, j) > select(res, j+1)))
+      {
+        var temp1 : Int = select(res, j);
+        var temp2 : Int = select(res, j+1);
+        res = store(res, j, temp2);
+        res = store(res, j+1, temp1);
+      } else {}
+
+      j = j + 1;
+
+    assert ? (
+      ((0 <= j) && (j <= n-i)) &&
+      (len(arr) == len(res)) &&
+      (forall p: UInt, q: UInt. ((n-i <= p) && (p < q) && (q <= n) && (n < len(res))) ==>
+      (select(res, p) <= select(res, q))) &&
+      (forall p: UInt, q: UInt. ((0 <= p) && (p < n-i) && (n-i < q) && (q < len(res))) ==> 
+      (select(res, p) <= select(res, q))) && 
+      (forall k: UInt. ((0 <= k) && (k <= j)) ==> (select(res, k) <= select(res, j)))
+      //&& (forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+    )
+    assume ? (false)
+    } else {}
+    i = i + 1 
+    assert ? (
+    ((0 <= i) && (i <= n)) &&
+    (len(arr) == len(res)) &&
+    (forall p: UInt, q: UInt. ((n-i <= p) && (p < q) && (q <= n) && (n < len(res))) ==>
+    (select(res, p) <= select(res, q))) &&
+    (forall p: UInt, q: UInt. ((0 <= p) && (p < n-i) && (n-i < q) && (q < len(res))) ==> 
+    (select(res, p) <= select(res, q)))
+    //&& (forall k: UInt. (multiplicity(len(arr), arr, k) == multiplicity(len(res), res, k)))
+    )
+    assume ? (false)
+  } else {}
+}
+
+proc Main () -> ()
+{
+  var arr: []Int;
+  assume ? (len(arr) == 5);
+  arr = store(arr, 0, 3);
+  arr = store(arr, 1, 2);
+  arr = store(arr, 2, 5);
+  arr = store(arr, 3, 1);
+  arr = store(arr, 4, 4);
+  var res: []Int = BubbleSort(arr)
+  assert ? (
+    forall p: UInt, q: UInt. ((0 <= p) && (p < q) && (q < len(res))) ==> 
+    (select(res, p) <= select(res, q))
+  )
+  assert ? (len(res) == 5)
+}
+
+proc xx() -> ()
+{
+  //never verifies
+  assert 0
+}
+
+

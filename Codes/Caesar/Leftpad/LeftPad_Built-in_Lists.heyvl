@@ -1,0 +1,101 @@
+// RUN: @caesar @file
+
+/**
+  *   Using the built-in List to try verifying left-pad
+  **/
+
+/**
+  *   The proc to ensure left-pad
+  *
+  *   @param  str:    A  List
+  *   @param  ln:     The desired length of the return value
+  *   @param  c:      The added pad
+  *   @returns  res:  The return List that has correct left-pad in desired length
+  *   
+  *   note:   Instead using predicates as in Dafny, annotate the quantifiers directly in pre- and postconditions
+  *           The annotations are analogous as the those used in Dafny
+  **/
+
+proc LeftPad(str: []Int, ln: UInt, c: Int) -> (res: []Int)
+  pre ? (0 <= len(str) && 0 <= ln)
+  post ? (
+    (len(res) == ite(ln < len(str), len(str), ln)) && 
+    (forall k: UInt. ((0 <= k) && (k < ln - len(str))) ==> (select(res, k) == c)) &&
+    
+    //analog to res[max(0, ln-len(str))+k] == str[k]
+    (forall k: UInt. ((ite(0 < ln-len(str), ln-len(str), 0) <= k) && (k < len(res))) ==> (select(res, k) == select(str, k-ite(0 < ln-len(str), ln-len(str), 0)))) //&&
+    
+    //analog to str[k] == res[max(0, ln-len(str))+k]
+    //(forall k: UInt. ((0 <= k) && (k < len(str))) ==> (select(res, ite(0 < ln-len(str), ln-len(str), 0) + k) == select(str, k)))
+  )
+{
+  assume ? (len(res) == ln)
+  if(ln <= len(str)) {
+    res = str
+  }
+  else {
+    if (len(str) < ln){
+      var i: UInt = 0
+      var pads: Int = ln-len(str)
+      assert ? (
+        ((0 <= ln) && (0 <= i) && (i <= pads)) &&  
+        (len(res) == ln) && 
+        (forall k: UInt. (0 <= k && k < i) ==> (select(res, k) == c))
+      )
+      havoc res, i
+      assume ? (
+        ((0 <= ln) && (0 <= i) && (i <= pads)) &&  
+        (len(res) == ln) && 
+        (forall k: UInt. (0 <= k && k < i) ==> (select(res, k) == c))
+      )
+      if (i < pads)
+      {
+        res = store(res, i, c)
+        i = i + 1
+        assert ? (
+          ((0 <= ln) && (0 <= i) && (i <= pads)) &&  
+          (len(res) == ln) && 
+          (forall k: UInt. (0 <= k && k < i) ==> (select(res, k) == c))
+        )
+      } else {}
+      var j : UInt = 0
+      assert ? (
+        (0 <= j) && (j <= len(str)) &&
+        (len(res) == ln) && 
+        (forall k: UInt. ((0 <= k) && (k < i)) ==> (select(res, k) == c)) && 
+        (forall k: UInt. ((0 <= k) && (k < j)) ==> (select(res, ite(0 < ln-len(str), ln-len(str), 0) + k) == select(str, k))) 
+        //&&
+        //(forall k: UInt. ((ite(0 < ln-len(str), ln-len(str), 0) <= k) && (k < j)) ==> (select(res, k) == select(str, k-ite(0 < ln-len(str), ln-len(str), 0))))
+        
+      )
+      havoc res, j
+      assume ? (
+        (0 <= j) && (j <= len(str)) &&
+        (len(res) == ln) && 
+        (forall k: UInt. ((0 <= k) && (k < i)) ==> (select(res, k) == c)) && 
+        (forall k: UInt. ((0 <= k) && (k < j)) ==> (select(res, ite(0 < ln-len(str), ln-len(str), 0) + k) == select(str, k))) 
+        //&&
+        //(forall k: UInt. ((ite(0 < ln-len(str), ln-len(str), 0) <= k) && (k < j)) ==> (select(res, k) == select(str, k-ite(0 < ln-len(str), ln-len(str), 0))))
+        
+      )
+      if (j < len(str)) { 
+        res = store(res, ln-len(str)+j, select(str, j))
+        j = j + 1
+        assert ? (
+          (0 <= j) && (j <= len(str)) &&
+          (len(res) == ln) && 
+          (forall k: UInt. ((0 <= k) && (k < i)) ==> (select(res, k) == c)) && 
+          (forall k: UInt. ((0 <= k) && (k < j)) ==> (select(res, ite(0 < ln-len(str), ln-len(str), 0) + k) == select(str, k))) 
+          //&&
+          //(forall k: UInt. ((ite(0 < ln-len(str), ln-len(str), 0) <= k) && (k < j)) ==> (select(res, k) == select(str, k-ite(0 < ln-len(str), ln-len(str), 0))))            
+        )
+      } else {}
+    } else {}
+  }
+}
+
+proc xx() -> ()
+{
+  //never verifies
+  assert 0
+}

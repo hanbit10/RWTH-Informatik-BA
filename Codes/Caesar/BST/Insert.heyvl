@@ -1,0 +1,160 @@
+// RUN: @caesar @file
+
+domain Tree {
+  /**
+    *   Define data type Tree
+    *   Tree is null or Node(left: Tree, val: Int, right: Tree)
+    **/
+    func null(): Tree
+    func node(left: Tree, val: Int, right: Tree): Tree
+
+  /**
+    *   Get value of the tree
+    *   @param    t: Tree
+    *   @returns  value of the tree
+    **/
+    func get_value(t: Tree): Int
+    axiom get_value_tree forall l: Tree, v: Int, r: Tree. get_value(node(l, v, r)) == v 
+  
+  /**
+    *   Get left tree of the tree t
+    *   @param    t: Tree
+    *   @returns  left tree of t
+    **/
+    func get_left(t: Tree): Tree
+    axiom get_left_tree forall l: Tree, v: Int, r: Tree. get_left(node(l, v, r)) == l
+
+  /**
+    *   Get right tree of the tree t
+    *   @param    t: Tree
+    *   @returns  right tree of t
+    **/
+    func get_right(t: Tree): Tree
+    axiom get_right_tree forall l: Tree, v: Int, r: Tree. get_right(node(l, v, r)) == r
+
+  /**
+    *   Define tree is null
+    *   @param    t: Tree
+    *   @returns  boolean if tree is null
+    **/
+    func is_null(t: Tree): Bool
+    axiom is_null_tree forall t: Tree. is_null(t) == (t == null())
+
+  /**
+    *   Define tree contains elements
+    *   @param    t: Tree
+    *   @returns  boolean if tree contains elements
+    **/  
+    func is_tree(t: Tree): Bool
+    axiom is_tree_tree forall t: Tree, l: Tree, v: Int, r: Tree. (
+      ((get_left(t) == l) && (get_right(t) == r) && (get_value(t) == v)) ==>
+      (is_tree(t) == (t == node(l, v, r))) 
+    )
+
+  /**
+    *   List can only be null or a List
+    **/  
+    axiom either_tree_or_null forall t: Tree. (is_null(t) || is_tree(t))
+    
+  /**
+    *   Define tree contains element value
+    *   @param    t: Tree
+    *   @param    val: element that is in t
+    *   @returns  boolean if tree contains element val
+    **/   
+    func contains(t: Tree, val: Int) : Bool
+    axiom ct_null forall t: Tree, v: Int. is_null(t) ==> (contains(t, v) == false) 
+    axiom ct_tree_l forall t: Tree, l: Tree, v: Int, r: Tree, val: Int. (
+    is_tree(t) && (t == node(l, v, r)) && (l == get_left(t)) && (r == get_right(t))  && (val < v)
+    ) ==> (contains(t, val) == contains(l, val))
+    axiom ct_tree_g forall t: Tree, l: Tree, v: Int, r: Tree, val: Int. (
+    is_tree(t) &&  (t == node(l, v, r)) && (l == get_left(t)) && (r == get_right(t))  && (val > v)
+    ) ==> (contains(t, val) == contains(r, val))
+    axiom ct_tree_t forall t: Tree, l: Tree, v: Int, r: Tree, val: Int. (
+    is_tree(t) &&  (t == node(l, v, r)) && (l == get_left(t)) && (r == get_right(t)) && (val == v)
+    ) ==> (contains(t, val) == true)
+    
+  /**
+    *   Define tree is binary search tree
+    *   @param    t: Tree
+    *   @returns  boolean if tree is binary search tree
+    **/    
+    func BST(t: Tree): Bool
+    axiom bst_n forall t: Tree, min: Int. is_null(t) ==> (BST(t) == true)
+    axiom bst_no forall t: Tree, l: Tree, v: Int, r: Tree. (
+    is_tree(t) && (l == get_left(t)) && (v == get_value(t)) && (r == get_right(t)) && (t == node(l,v,r))) ==> 
+    (BST(t) == (BST(get_left(t)) && BST(get_right(t)) && 
+    (forall z: Int. contains(r, z) ==> (v < z)) && (forall z: Int. contains(l, z) ==> (v > z))))
+}
+
+//test if axiom works correctly
+// proc leftTree(t: Tree) -> (res: Tree)
+//   pre ? (true)
+//   post ? (res == get_left(t))
+// {
+//   var l : Tree = get_left(t);
+//   res = l
+// }
+
+// proc cont(t: Tree, v: Int) -> (res: Bool)
+//   pre ? (true)
+//   post ? (res == true)
+// {
+//   var l: Tree = get_left(t)
+//   var r: Tree = get_right(t)
+//   var temp: Tree = node(l, v, r)
+//   res = contains(temp, v)
+// }
+
+/**
+  *   Insert value in a tree
+  *   @param    t:   Tree
+  *   @param    val: Int value inserted in binary serach tree
+  *   @returns  res: A binary serach tree containing value val
+  **/   
+proc Insert(t: Tree, val: Int) -> (res: Tree)
+pre ? (BST(t))
+post ? (
+  (forall x: Int. ((contains(t, x) && (x < val)) ==> contains(res, x))) &&
+  (forall x: Int. ((contains(t, x) && (x > val)) ==> contains(res, x))) &&
+  (forall v: Int. (contains(res, v) == contains(t,v) || (v == val))) &&
+  BST(res) 
+)
+ {
+   if(is_null(t)){
+     res = node(null(), val, null())
+   }else{
+     if(is_tree(t)){
+       var temp: Tree;
+       if (val == get_value(t)){
+         res = t
+       }else{
+         if(val < get_value(t)){
+           temp = Insert(get_left(t), val)
+           res = node(temp, get_value(t), get_right(t))
+        }else{
+           if(val > get_value(t)){
+             temp = Insert(get_right(t), val)
+             res = node(get_left(t), get_value(t), temp)
+           } else {}   
+         }
+       }
+     } else {}
+   }
+ }
+ 
+proc main () -> () 
+{
+  var t : Tree = node(node(node(null(), 1, node(null(), 2, null())), 3, null()), 5, node(null(), 6, null()))
+  var t2 : Tree = Insert(t, 7)
+  assert ? (BST(t2))
+  assert ? (contains(t2, 7))
+  assert ? (contains(t2, 5))
+  assert ? (contains(t, 5))
+}
+
+proc xx() -> ()
+{
+  //never verifies
+  assert 0
+}

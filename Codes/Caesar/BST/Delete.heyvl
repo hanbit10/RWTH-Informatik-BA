@@ -1,0 +1,210 @@
+// RUN: @caesar @file
+
+domain Tree {
+  /**
+    *   Define datatype Tree
+    *   Tree is null or Node(left: Tree, val: Int, right: Tree)
+    **/
+    func null(): Tree
+    func node(left: Tree, val: Int, right: Tree): Tree
+
+  /**
+    *   Get value of the tree
+    *   @param    t: Tree
+    *   @returns  value of the tree
+    **/
+    func get_value(t: Tree): Int
+    axiom g_v forall l: Tree, v: Int, r: Tree. get_value(node(l, v, r)) == v 
+  
+  /**
+    *   Get left tree of the tree t
+    *   @param    t: Tree
+    *   @returns  left tree of t
+    **/
+    func get_left(t: Tree): Tree
+    axiom g_l forall l: Tree, v: Int, r: Tree. get_left(node(l, v, r)) == l
+
+  /**
+    *   Get right tree of the tree t
+    *   @param    t: Tree
+    *   @returns  right tree of t
+    **/
+    func get_right(t: Tree): Tree
+    axiom g_r forall l: Tree, v: Int, r: Tree. get_right(node(l, v, r)) == r
+
+  /**
+    *   Define tree is null
+    *   @param    t: Tree
+    *   @returns  boolean if tree is null
+    **/
+    func is_null(t: Tree): Bool
+    axiom i_n forall t: Tree. is_null(t) == (t == null())
+
+  /**
+    *   Define tree contains elements
+    *   @param    t: Tree
+    *   @returns  boolean if tree contains elements
+    **/  
+    func is_tree(t: Tree): Bool
+    axiom i_t forall t: Tree, l: Tree, v: Int, r: Tree. (
+      ((get_left(t) == l) && (get_right(t) == r) && (get_value(t) == v)) ==>
+      (is_tree(t) == (t == node(l, v, r))) 
+    )
+
+  /**
+    *   List can only be null or a List
+    **/  
+    axiom tree_or_null forall t: Tree. (is_null(t) || is_tree(t))
+    
+  /**
+    *   Define tree contains element value
+    *   @param    t: Tree
+    *   @param    val: element that is in t
+    *   @returns  boolean if tree contains element val
+    **/   
+    func contains(t: Tree, val: Int) : Bool
+    axiom ct_n forall t: Tree, v: Int. is_null(t) ==> (contains(t, v) == false) 
+    axiom ct_t_l forall t: Tree, l: Tree, v: Int, r: Tree, val: Int. (
+    is_tree(t) && (t == node(l, v, r)) && (l == get_left(t)) && (r == get_right(t))  && (val < v)
+    ) ==> (contains(t, val) == contains(l, val))
+    axiom ct_t_g forall t: Tree, l: Tree, v: Int, r: Tree, val: Int. (
+    is_tree(t) &&  (t == node(l, v, r)) && (l == get_left(t)) && (r == get_right(t))  && (val > v)
+    ) ==> (contains(t, val) == contains(r, val))
+    axiom ct_t_v forall t: Tree, l: Tree, v: Int, r: Tree, val: Int. (
+    is_tree(t) &&  (t == node(l, v, r)) && (l == get_left(t)) && (r == get_right(t)) && (val == v)
+    ) ==> (contains(t, val) == true)
+    
+  /**
+    *   Define tree is binary search tree
+    *   @param    t: Tree
+    *   @returns  boolean if tree is binary search tree
+    **/    
+    func BST(t: Tree): Bool
+    axiom b_n forall t: Tree, min: Int. is_null(t) ==> (BST(t) == true)
+    axiom b_t forall t: Tree, l: Tree, v: Int, r: Tree. (
+    is_tree(t) && (l == get_left(t)) && (v == get_value(t)) && (r == get_right(t)) && (t == node(l,v,r))) ==> 
+    (BST(t) == (BST(get_left(t)) && BST(get_right(t)) && 
+    (forall z: Int. contains(r, z) ==> (v < z)) && (forall z: Int. contains(l, z) ==> (v > z))))
+
+  /**
+    *   Get minimum value from the binary search tree
+    *   @param    t: Tree
+    *   @returns  minimum value of t
+    *   notation: define BST(t) -> terminates xx and cannot define same as in Dafny as cannot write precondition
+    *
+    **/    
+    func getMin(t: Tree) : Int
+    axiom gm_l forall t: Tree, l: Tree, v: Int, r: Tree. (
+    is_tree(t) && (l == get_left(t)) && (v == get_value(t)) && (r == get_right(t)) && (t == node(l,v,r)) && is_tree(l)) ==>
+    (getMin(t) == getMin(l))
+    axiom gm_n forall t: Tree, l: Tree, v: Int, r: Tree. ( 
+    is_tree(t) && (l == get_left(t)) && (v == get_value(t)) && (r == get_right(t)) && (t == node(l,v,r)) && is_null(l)) ==>
+    (getMin(t) == v)   
+    axiom gm_d forall t: Tree, l: Tree, v: Int, r: Tree. (
+    (is_tree(t) && (l == get_left(t))) ==> (contains(t, getMin(t)) && 
+    (forall x : Int. (contains(t, x) && (x != getMin(t))) ==> (getMin(t) < x)))
+    )
+}
+
+/**
+  *   Get minimum value from the binary serach tree
+  *   @param    t: Tree
+  *   @returns  res :minimum value of t
+  *   notation: using in proc Delete does not verify
+  *
+  **/    
+proc GetMin(t: Tree) -> (res: Int)
+  pre ? (BST(t) && is_tree(t))
+  post ? (contains(t, getMin(t))
+    && (forall v: Int. (contains(t, v,) && (v != getMin(t)))  ==> (getMin(t) <= v))
+  )
+{
+    if (is_tree(t)) {
+      var l: Tree = get_left(t)
+      var v: Int = get_value(t)
+      var r: Tree = get_right(t)
+        if (is_tree(l))
+        {
+          res = GetMin(l)
+        }
+        else {
+          res = v
+        }
+    } else {}
+}
+/**
+  *   Delete value in a tree
+  *   @param    t:   Tree
+  *   @param    val: Int value deleted in binary serach tree
+  *   @returns  res: A binary serach tree without value val
+  **/   
+proc Delete(t: Tree, val: Int) -> (res: Tree)
+  pre ? (BST(t))
+  post ? (
+  (forall x: Int. ((contains(t, x) && (x < val)) ==> contains(res, x))) &&
+  (forall x: Int. ((contains(t, x) && (x > val)) ==> contains(res, x))) &&
+  (forall v: Int. (contains(res, v) == (contains(t,v) && (v != val)))) &&
+  BST(res)
+  ) 
+{
+   if(is_null(t)){
+     res = t
+   }else{
+    if (is_tree(t)) {
+      var l :Tree = get_left(t)
+      var v :Int = get_value(t)
+      var r :Tree = get_right(t)
+      if (val < v) {
+        var ll :Tree = Delete(l, val)
+        res = node(ll, v, r)
+      } else {
+        if (val > v) {
+        var rr : Tree = Delete(r, val)
+        res = node(l, v, rr)
+        } else {
+          if (val == v) {
+            if (l == null() && r == null()) {
+              res = null()
+            } else {
+              if (l == null()) {
+                res = r
+              } else {
+                if(r == null()) {
+                  res = l
+                } else {
+                  if ((l != null()) && (r != null())){
+                    assert ? (BST(r))
+                    var minV :Int = getMin(r)
+                    var rm :Tree = Delete(r, minV)
+                    res = node(l, minV, rm)
+                  } else {}
+                } 
+              }             
+            }
+          } else {}
+        }
+      }
+    } else {}
+  }
+}
+ 
+proc Main () -> () 
+{
+  var t : Tree = node(node(node(null(), 1, node(null(), 2, null())), 3, null()), 5, node(null(), 6, null()))
+  var t2 : Tree = Delete(t, 5)
+  assert ? (BST(t2))
+  assert ? (!contains(t2, 5))
+
+  // var t3 : Tree = node(node(node(null(), 1, node(null(), 2, null())), 3, null()), 5, node(null(), 6, null()))
+  // var t4 : Tree = Insert(t3, 7)
+  // assert ? (BST(t4))
+  // assert ? (contains(t4, 7))
+  // assert ? (contains(t4, 5))
+  // assert ? (contains(t3, 5))
+}
+
+proc xx() -> ()
+{
+  //never verifies
+  assert 0
+}

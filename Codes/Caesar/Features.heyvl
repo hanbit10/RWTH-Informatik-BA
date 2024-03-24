@@ -1,0 +1,64 @@
+// RUN: @caesar @file
+domain Calc{
+  func even(x: Int): Bool
+  axiom e_t forall x: Int. (x%2 == 0) ==> even(x) == true
+
+  func odd(x: Int): Bool
+  axiom o_t forall x: Int. (x%2 == 1) ==> odd(x) == true
+}
+
+domain List {
+  func null(): List
+  func cons(head:Int, tail:List): List
+}
+
+proc AA (a: Int) -> () 
+{
+  assume ? (0 <= a)
+  assert ? (0 <= a)
+}
+
+proc Min(x: Int, y: Int) -> (res: Int)
+{
+  if (x < y){
+    res = x
+  } else {
+    res = y
+  }
+}
+
+proc Mul(b: Int, e: Int) -> (x: Int)
+  pre ? (0 <= e)
+  post ? (x == b * e)
+{
+  x = 0
+  var i : Int = e
+  assert ? (x == b * (e - i))
+  havoc x
+  assume ? (x == b * (e - i))
+  if (0 < i)
+  {
+    x = x + b
+    i = i - 1
+    assert ? (x == b * (e - i))
+    assume ? (false)
+  } else {}
+}
+
+//it doesnt terminate it just shows how to operate built-in Lists
+proc Main ()->(){
+//Create a new list length of 3
+assume ? len(arr) = 3
+
+//Get element in index 2
+var res = select(arr, 2)
+
+//Get the length of the list
+var res = len(arr)
+
+//Store element in index 1
+var arr = store(arr, 1, 2)
+}
+
+
+

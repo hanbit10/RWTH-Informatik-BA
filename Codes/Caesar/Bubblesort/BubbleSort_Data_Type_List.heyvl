@@ -1,0 +1,226 @@
+// RUN: @caesar @file
+
+domain List {
+/**
+  *   Define datatype List
+  *   List is null or cons(head: Int, tail: List)
+  **/
+  func null(): List
+  func cons(head: Int, tail: List): List
+
+/**
+  *   Get value of the list
+  *   @param    ls: List
+  *   @returns  Value of the list
+  **/
+  func get_value(ls: List): Int
+  axiom g_v forall h: Int, t: List. get_value(cons(h, t)) == h
+
+/**
+  *   Get tail of the list
+  *   @param    ls: List
+  *   @returns  Get tail of the list
+  **/
+  func get_tail(ls: List): List
+  axiom g_t forall h: Int, t: List. get_tail(cons(h, t)) == t
+
+/**
+  *   Define list is null
+  *   @param    ls: List
+  *   @returns  Boolean if list is null
+  **/
+  func is_null(ls: List) : Bool
+  axiom i_n forall ls: List. is_null(ls) == (ls == null())
+  
+/**
+  *   Define list contains elements
+  *   @param    ls: List
+  *   @returns  Boolean if list contains elements
+  **/  
+  func is_list(ls: List): Bool
+  axiom i_l forall ls: List, h: Int, t: List. ((get_tail(ls) == t) && (get_value(ls) == h)) ==> (is_list(ls) == ( ls == (cons(h, t))))
+
+/**
+  *   List can only be null or a List
+  **/  
+  axiom either_list_or_null forall ls: List. (is_null(ls) || is_list(ls))
+
+/**
+  *   Define length of the List contains elements
+  *   @param    ls: List
+  *   @returns  The length of the List
+  **/  
+  func length(ls: List): UInt
+  axiom l_n forall ls: List. is_null(ls) ==> (length(ls) == 0)
+  axiom l_r forall ls: List. is_list(ls) ==> (length(ls) ==  1 + length(get_tail(ls)))
+
+/**
+  *   Get the element in index i of a List 
+  *   @param    ls: List
+  *   @param    i:  Index
+  *   @returns  The element of the List in index i
+  **/  
+  func select(ls: List, i: UInt): Int
+  axiom s_n forall ls: List, i: UInt. is_null(ls) ==> (select(ls, i) == 0)
+  axiom s_l_v forall ls: List, i: UInt. (is_list(ls) && (i == 0)) ==> (select(ls, i) == get_value(ls))
+  axiom s_l_r forall ls: List, h: Int, t: List, i: UInt. (is_list(ls) && (0 < i) && (ls == cons(h, t))) ==> (select(ls, i) == select(t, i-1))
+
+/**
+  *   Function of multiplicity 
+  *   Failed to implement
+  *
+  *   @param  ls:    The input list
+  *   @param  el:    The element of multiplicity
+  *   @returns       The number of times that the element appears
+  *   
+  *   note:   Caesar cannot find for all examples, as Caesar cannot choose the quantified instance
+  **/
+  func multiplicity(ls: List, el: Int) : UInt
+  axiom m_n forall ls: List, el: Int. is_null(ls) ==> (multiplicity(ls, el) == 0)
+  axiom m_l forall ls: List, h: Int, t: List, el: Int. (is_list(ls) && (ls == cons(h, t)) && (el == h)) ==> (multiplicity(ls, el) == 1 + multiplicity(t, el))
+  axiom m_l_n forall ls: List, h: Int, t: List, el: Int. (is_list(ls) && (ls == cons(h, t)) && (el != h)) ==> (multiplicity(ls, el) == multiplicity(t, el))
+}
+
+/**
+  *   The proc to store elements
+  *
+  *   @param  ls:     A datatype List
+  *   @param  i:      Index 
+  *   @param  c:      The stored element
+  *   @returns  res:  return List that stores c in i
+  *   
+  **/
+proc Store(ls: List, i: UInt, c: Int) -> (res: List)
+  pre ? (i < length(ls))
+  post ? (
+    (forall k: UInt. ((k < length(res) && k < length(ls) && (k != i)) ==>
+    (select(res, k) == select(ls, k)))) &&
+    (length(res) == length(ls)) &&
+    (select(res, i) == c)
+  )
+{
+ if (is_null(ls)) {
+  res = ls
+ } else {
+  if (is_list(ls)) {
+    var h: Int = get_value(ls)
+    var t: List = get_tail(ls)
+    if (i == 0) {
+      res = cons(c, t)
+    } else {
+      var temp : List = Store(t, i-1, c)
+      res = cons(h, temp)
+    }
+  } else {}
+ }
+}
+
+/**
+  *   The proc Bubble Sort
+  *
+  *   @param    ls:   A datatype List
+  *   @returns  res:  The return List that sorts ls
+  *   
+  **/
+proc BubbleSort(ls: List) -> (res: List)
+  pre ? ((0 <= length(ls)))
+  post ? ((0 <= length(res)) 
+  && (forall p: UInt, q: UInt. ((0 <= p) && (p <= q) && (q < length(res))) ==> (select(res, p) <= select(res, q)))
+  && (length(ls) == length(res)) 
+  )
+{
+  res = ls;
+  var i: UInt = 0;
+  var n: UInt = (length(res) - 1);
+
+  assert ? (
+    ((0 <= i) && (i <= n)) &&
+    (forall p: UInt, q: UInt. ((n-i <= p) && (p <= q) && (q <= n) && (n < length(res))) ==>
+    (select(res, p) <= select(res, q))) &&
+    (forall p: UInt, q: UInt. ((0 <= p) && (p <= n-i) && (n-i < q) && (q < length(res))) ==> 
+    (select(res, p) <= select(res, q)))  &&
+    (length(ls) == length(res) )
+  )
+  havoc res, i
+  assume ? (
+    ((0 <= i) && (i <= n)) &&
+    (forall p: UInt, q: UInt. ((n-i <= p) && (p <= q) && (q <= n) && (n < length(res))) ==>
+    (select(res, p) <= select(res, q))) &&
+    (forall p: UInt, q: UInt. ((0 <= p) && (p <= n-i) && (n-i < q) && (q < length(res))) ==> 
+    (select(res, p) <= select(res, q)))   &&
+    (length(ls) == length(res) )
+  )
+  if (0 < n-i) {
+    var j: UInt = 0
+
+    assert ? (
+      ((0 <= j) && (j <= n-i)) &&
+      (forall p: UInt, q: UInt. ((n-i <= p) && (p <= q) && (q <= n) && (n < length(res))) ==>
+      (select(res, p) <= select(res, q))) &&
+      (forall p: UInt, q: UInt. ((0 <= p) && (p <= n-i) && (n-i < q) && (q < length(res))) ==> 
+      (select(res, p) <= select(res, q))) && 
+      (forall k: UInt. ((0 <= k) && (k <= j)) ==> (select(res, k) <= select(res, j))) &&
+      (length(ls) == length(res) )
+    )
+    havoc res, j
+    assume ? (
+      ((0 <= j) && (j <= n-i)) &&
+      (forall p: UInt, q: UInt. ((n-i <= p) && (p <= q) && (q <= n) && (n < length(res))) ==>
+      (select(res, p) <= select(res, q))) &&
+      (forall p: UInt, q: UInt. ((0 <= p) && (p <= n-i) && (n-i < q) && (q < length(res))) ==> 
+      (select(res, p) <= select(res, q))) && 
+      (forall k: UInt. ((0 <= k) && (k <= j)) ==> (select(res, k) <= select(res, j))) &&
+      (length(ls) == length(res) )
+    )
+    if (j < n-i) {
+      if((select(res, j) > select(res, j+1)))
+      {
+        var temp : Int = select(res, j);
+        var temp2 : Int = select(res, j+1);
+        res = Store(res, j, temp2);
+        res = Store(res, j+1, temp);
+      } else {}
+
+      j = j + 1;
+
+    assert ? (
+      ((0 <= j) && (j <= n-i)) &&
+      (forall p: UInt, q: UInt. ((n-i <= p) && (p <= q) && (q <= n) && (n < length(res))) ==>
+      (select(res, p) <= select(res, q))) &&
+      (forall p: UInt, q: UInt. ((0 <= p) && (p <= n-i) && (n-i < q) && (q < length(res))) ==> 
+      (select(res, p) <= select(res, q))) && 
+      (forall k: UInt. ((0 <= k) && (k <= j)) ==> (select(res, k) <= select(res, j))) &&
+      (length(ls) == length(res) )
+    )
+    assume ? (false)
+    } else {}
+
+    i = i + 1 
+
+    assert ? (
+    ((0 <= i) && (i <= n)) &&
+    (forall p: UInt, q: UInt. ((n-i <= p) && (p <= q) && (q <= n) && (n < length(res))) ==>
+    (select(res, p) <= select(res, q))) &&
+    (forall p: UInt, q: UInt. ((0 <= p) && (p <= n-i) && (n-i < q) && (q < length(res))) ==> 
+    (select(res, p) <= select(res, q)))  
+    )
+    assume ? (false)
+  } else {}
+}
+
+proc Main () -> ()
+{
+  var ls : List = cons(2, cons(4, cons(2, cons(4, cons(3, null())))))
+  assert ? (forall k: UInt. (multiplicity(ls, 4) == 2))
+
+  var xs : List = BubbleSort(ls)
+  assert ? (forall p: UInt, q: UInt. (0 <= p && p < q && q < length(xs)) ==> (select(xs, p) <= select(xs,q)))
+}
+
+proc xx() -> ()
+{
+  //never verifies
+  assert 0
+}
+
+
